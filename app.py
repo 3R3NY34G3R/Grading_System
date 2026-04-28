@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Grade Calculator", layout="centered")
 
-st.title("📊 Student Grade Calculator")
+st.title("Student Grade Calculator")
 
 # -----------------------------
 # SESSION STATE INIT
@@ -49,7 +49,7 @@ if selected_components:
     st.write(f"Total Weight: {total_weight}%")
 
     if total_weight != 100:
-        st.error("⚠️ Total must equal 100%")
+        st.error("Total must equal 100%")
         st.stop()
 else:
     st.warning("Select at least one component")
@@ -182,7 +182,7 @@ else:
 # -----------------------------
 # SUMMARY
 # -----------------------------
-st.header("📌 Summary")
+st.header("Summary")
 
 st.write(f"Prelim: {st.session_state.prelim}")
 st.write(f"Midterm: {st.session_state.midterm}")
