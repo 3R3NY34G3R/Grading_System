@@ -1,24 +1,21 @@
 import streamlit as st
 
 st.set_page_config(page_title="Grade Calculator", layout="centered")
-
 st.title("Student Grade Calculator")
 
 # -----------------------------
 # SESSION STATE INIT
 # -----------------------------
-if "prelim" not in st.session_state:
-    st.session_state.prelim = None
-if "midterm" not in st.session_state:
-    st.session_state.midterm = None
-if "final" not in st.session_state:
-    st.session_state.final = None
+for key in ["prelim", "midterm", "final",
+            "cs_prelim", "cs_midterm", "cs_final"]:
+    if key not in st.session_state:
+        st.session_state[key] = None
 
 
 # -----------------------------
 # COMPONENT SELECTION
 # -----------------------------
-st.header("1. Select Class Standing Components")
+st.header("1. Class Standing Setup")
 
 components_catalog = [
     "Quiz", "Homework", "Assignment",
@@ -32,53 +29,61 @@ for comp in components_catalog:
     if st.checkbox(comp):
         selected_components.append(comp)
 
-
-# -----------------------------
-# WEIGHTS INPUT
-# -----------------------------
-weights = []
-
-if selected_components:
-    st.subheader("Set Component Weights (%)")
-
-    for comp in selected_components:
-        w = st.number_input(f"{comp} weight", min_value=0.0, max_value=100.0, step=1.0)
-        weights.append(w)
-
-    total_weight = sum(weights)
-    st.write(f"Total Weight: {total_weight}%")
-
-    if total_weight != 100:
-        st.error("Total must equal 100%")
-        st.stop()
-else:
+if not selected_components:
     st.warning("Select at least one component")
     st.stop()
 
 
 # -----------------------------
-# CLASS STANDING INPUT
+# WEIGHTS
 # -----------------------------
-def compute_cs():
+st.subheader("Component Weights (%)")
+
+weights = []
+for comp in selected_components:
+    w = st.number_input(f"{comp} weight", 0.0, 100.0, step=1.0, key=f"w_{comp}")
+    weights.append(w)
+
+if sum(weights) != 100:
+    st.error("Total weight must be 100%")
+    st.stop()
+
+
+# -----------------------------
+# CS FUNCTION (FIXED)
+# -----------------------------
+def compute_cs(term_key):
     total_grade = 0
 
     for i, comp in enumerate(selected_components):
 
         st.subheader(comp)
 
-        num = st.number_input(f"How many {comp} items?", min_value=1, step=1, key=comp)
+        num_key = f"{term_key}_{comp}_num"
+        if num_key not in st.session_state:
+            st.session_state[num_key] = 1
+
+        num = st.number_input(
+            f"How many {comp} items?",
+            min_value=1,
+            step=1,
+            key=num_key
+        )
 
         scores = []
         totals = []
 
         for j in range(num):
+            raw_key = f"{term_key}_{comp}_raw_{j}"
+            total_key = f"{term_key}_{comp}_total_{j}"
+
             col1, col2 = st.columns(2)
 
             with col1:
-                raw = st.number_input(f"{comp} {j+1} score", key=f"{comp}_raw_{j}")
+                raw = st.number_input(f"{comp} {j+1} score", key=raw_key)
 
             with col2:
-                total = st.number_input(f"{comp} {j+1} total", key=f"{comp}_total_{j}")
+                total = st.number_input(f"{comp} {j+1} total", key=total_key)
 
             if total > 0:
                 scores.append(raw)
@@ -94,14 +99,14 @@ def compute_cs():
 # -----------------------------
 # EXAM INPUT
 # -----------------------------
-def exam_input(label):
+def exam_input(label, key):
     col1, col2 = st.columns(2)
 
     with col1:
-        raw = st.number_input(f"{label} Raw Score")
+        raw = st.number_input(f"{label} Raw", key=f"{key}_raw")
 
     with col2:
-        total = st.number_input(f"{label} Total Score")
+        total = st.number_input(f"{label} Total", key=f"{key}_total")
 
     if total > 0:
         return (raw / total) * 100
@@ -114,17 +119,16 @@ def exam_input(label):
 st.header("2. Prelim")
 
 if st.button("Compute Prelim CS"):
-    st.session_state.cs_prelim = compute_cs()
+    st.session_state.cs_prelim = compute_cs("prelim")
 
-if "cs_prelim" in st.session_state:
+if st.session_state.cs_prelim is not None:
     st.success(f"CS: {st.session_state.cs_prelim:.2f}")
 
-    exam = exam_input("Prelim Exam")
+    exam = exam_input("Prelim Exam", "prelim_exam")
 
     if exam is not None:
-        prelim = 50 + (st.session_state.cs_prelim * 0.5) + (exam * 0.5)
-        st.session_state.prelim = prelim
-        st.success(f"Prelim Grade: {prelim:.2f}")
+        st.session_state.prelim = 50 + (st.session_state.cs_prelim * 0.5) + (exam * 0.5)
+        st.success(f"Prelim Grade: {st.session_state.prelim:.2f}")
 
 
 # -----------------------------
@@ -135,19 +139,21 @@ st.header("3. Midterm")
 if st.session_state.prelim is not None:
 
     if st.button("Compute Midterm CS"):
-        st.session_state.cs_midterm = compute_cs()
+        st.session_state.cs_midterm = compute_cs("midterm")
 
-    if "cs_midterm" in st.session_state:
+    if st.session_state.cs_midterm is not None:
         st.success(f"CS: {st.session_state.cs_midterm:.2f}")
 
-        exam = exam_input("Midterm Exam")
+        exam = exam_input("Midterm Exam", "mid_exam")
 
         if exam is not None:
             mid_comp = (st.session_state.cs_midterm * 0.5) + (exam * 0.5)
-            midterm = 50 + (st.session_state.prelim / 3) + ((2/3) * mid_comp)
 
-            st.session_state.midterm = midterm
-            st.success(f"Midterm Grade: {midterm:.2f}")
+            st.session_state.midterm = 50 + \
+                (st.session_state.prelim / 3) + \
+                ((2/3) * mid_comp)
+
+            st.success(f"Midterm Grade: {st.session_state.midterm:.2f}")
 
 else:
     st.info("Compute Prelim first")
@@ -161,19 +167,21 @@ st.header("4. Finals")
 if st.session_state.midterm is not None:
 
     if st.button("Compute Final CS"):
-        st.session_state.cs_final = compute_cs()
+        st.session_state.cs_final = compute_cs("final")
 
-    if "cs_final" in st.session_state:
+    if st.session_state.cs_final is not None:
         st.success(f"CS: {st.session_state.cs_final:.2f}")
 
-        exam = exam_input("Final Exam")
+        exam = exam_input("Final Exam", "final_exam")
 
         if exam is not None:
             final_comp = (st.session_state.cs_final * 0.5) + (exam * 0.5)
-            final = 50 + (st.session_state.midterm / 3) + ((2/3) * final_comp)
 
-            st.session_state.final = final
-            st.success(f"Final Grade: {final:.2f}")
+            st.session_state.final = 50 + \
+                (st.session_state.midterm / 3) + \
+                ((2/3) * final_comp)
+
+            st.success(f"Final Grade: {st.session_state.final:.2f}")
 
 else:
     st.info("Compute Midterm first")
