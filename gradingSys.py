@@ -1,164 +1,439 @@
 def per_com():
-    component = ["Quiz","Homework","Assignment","Hands on Activity","Discussion","Recitation","Attendance"]
+    components_catalog = [
+        "Quiz",
+        "Homework",
+        "Assignment",
+        "Hands on Activity",
+        "Discussion",
+        "Recitation",
+        "Attendance",
+        "Laboratory"
+    ]
 
-    Y = []
-    for comp in component:
-        stud = input(f"Is this in your CS {comp} (y/n): ").lower() 
-        if stud == 'y':
-            Y.append(comp)
-        elif stud == 'n':
-            continue
-        else:
-            print("Please type a valid answer!")
+    selected=[]
+
+    print("\nSelect Class Standing Components")
+
+    for comp in components_catalog:
+        while True:
+            ans=input(
+                f"Include {comp}? (y/n): "
+            ).lower().strip()
+
+            if ans=="y":
+                selected.append(comp)
+                break
+            elif ans=="n":
+                break
+            else:
+                print("Enter y or n only.")
+
+    if not selected:
+        print("At least one component required.")
+        return per_com()
 
     while True:
-        percent = []
-        for comp in Y:
+        percents=[]
+
+        print("\nEnter component weights")
+
+        for comp in selected:
             while True:
-                stud1 = input(f"Percent of the {comp}: ") 
                 try:
-                    percent.append(int(stud1))
+                    p=float(
+                        input(f"{comp} weight (%): ")
+                    )
+                    percents.append(p)
                     break
                 except ValueError:
-                    print("Please input a valid number!")
+                    print("Invalid number.")
 
-        if sum(percent) == 100:
+        if round(sum(percents),2)==100:
             break
         else:
-            print(f"Percentage sum = {sum(percent)}. Must equal 100.")
+            print(
+              f"Total is {sum(percents)}%. Must equal 100%."
+            )
 
-    return Y, percent
+    return selected,percents
 
 
-def CS(component, percent):
-    total_grade = 0
-    for i in range(len(component)):
-        while True:    
-            user = input(f"How many {component[i]}? ")
+# -----------------------------
+# Class Standing
+# -----------------------------
+
+def CS(components,weights):
+
+    total_grade=0
+
+    for i in range(len(components)):
+
+        while True:
             try:
-                num = int(user)
-                break
+                num=int(
+                    input(
+                        f"How many {components[i]} items? "
+                    )
+                )
+
+                if num>0:
+                    break
+                else:
+                    print("Must be at least 1.")
+
             except ValueError:
-                print("Type a valid number")
+                print("Enter valid integer.")
 
-        names = [f"{component[i]}{_}" for _ in range(1, num+1)]
-        scores = []
-        allOver = []
 
-        for name in names:
+        names=[
+            f"{components[i]} {x}"
+            for x in range(1,num+1)
+        ]
+
+        scores=[]
+        totals=[]
+
+        for item in names:
             while True:
                 try:
-                    y = int(input(f"{name} raw score: "))
-                    z = int(input("Total score: "))
-                    if y <= z:
-                        scores.append(y)
-                        allOver.append(z)
+                    raw=float(
+                        input(
+                          f"{item} raw score: "
+                        )
+                    )
+
+                    total=float(
+                        input(
+                           f"{item} total score: "
+                        )
+                    )
+
+                    if raw<=total and total>0:
+                        scores.append(raw)
+                        totals.append(total)
                         break
                     else:
-                        print("Raw score must be less than or equal to Total score")
+                        print(
+                          "Raw cannot exceed total."
+                        )
+
                 except ValueError:
-                    print("Input a valid number!")
+                    print("Invalid input.")
 
-        for name, score, over in zip(names, scores, allOver):
-            print(f"{name} : {score}/{over}")
+        component_grade=(
+            sum(scores)/sum(totals)
+        )*weights[i]
 
-        CS_grade = (sum(scores) / sum(allOver)) * percent[i]
-        total_grade += CS_grade
+        total_grade+=component_grade
 
     return total_grade
 
 
+# -----------------------------
+# Exam Input
+# -----------------------------
+
 def exam_input():
+
     while True:
         try:
-            raw = int(input("Exam raw score: "))
-            total = int(input("Exam total score: "))
-            if raw <= total:
-                return (raw / total) * 100
-            else:
-                print("Raw score must be less than or equal to total score")
-        except ValueError:
-            print("Input valid numbers!")
+            raw=float(input("Exam raw score: "))
+            total=float(input("Exam total score: "))
 
+            if raw<=total and total>0:
+                return (raw/total)*100
+            else:
+                print(
+                  "Raw cannot exceed total."
+                )
+
+        except ValueError:
+            print("Enter valid numbers.")
+
+
+# -----------------------------
+# Prelim
+# -----------------------------
 
 def prelim_grade(cs_grade):
-    user2 = input("Do you have prelim exam ?(y/n): ").lower()
-    if user2 == "y":
-        pre_ex = exam_input()
-        pre_g = 50 + ((cs_grade * 0.5) + (pre_ex * 0.5))
-    else:
-        need_exam = (75 - (50 + (cs_grade * 0.5))) / 0.5
-        print(f"You need {need_exam:.2f} in the exam to pass.")
-        pre_g = 50 + (cs_grade * 0.5)
-    return pre_g
+
+    ans=input(
+       "Do you have prelim exam? (y/n): "
+    ).lower()
+
+    if ans=="y":
+
+        exam=exam_input()
+
+        prelim=50+(
+            (cs_grade*.5)
+            +
+            (exam*.5)
+        )
+
+        return prelim
+
+    elif ans=="n":
+
+        projected=50+(cs_grade*.5)
+
+        need=(75-projected)/0.5
+
+        print("\n--- PRELIM STATUS ---")
+        print(
+          f"Current CS: {cs_grade:.2f}"
+        )
+        print(
+          f"Projected Prelim: {projected:.2f}"
+        )
+
+        if need<=100:
+            print(
+             f"Needed exam score to pass: {need:.2f}"
+            )
+        else:
+            print(
+             "Passing is mathematically impossible."
+            )
+
+        return None
 
 
-def midterm_grade(pre_g, components, percents):
-    cs_grade = CS(components, percents)
-    user = input("Do you have midterm exam ?(y/n): ").lower()
-    if user == "y":
-        mid_ex = exam_input()
-        mid_cs = (cs_grade * 0.5) + (mid_ex * 0.5)
-        mid_g = 50 + ((pre_g * (1/3)) + (mid_cs * (2/3)))
-    else:
-        need = (75 - (50 + (pre_g * (1/3)))) / (2/3 * 0.5)
-        print(f"You need {need:.2f} in the midterm exam to pass.")
-        mid_g = 50 + ((pre_g * (1/3)) + (cs_grade * 0.5 * (2/3)))
-    return mid_g
+# -----------------------------
+# Midterm
+# -----------------------------
+
+def midterm_grade(prelim,components,weights):
+
+    cs_grade=CS(
+        components,
+        weights
+    )
+
+    ans=input(
+      "Do you have midterm exam? (y/n): "
+    ).lower()
+
+    if ans=="y":
+
+        exam=exam_input()
+
+        mid_comp=(cs_grade*.5)+(exam*.5)
+
+        mid=50+(
+            (prelim/3)
+            +
+            ((2/3)*mid_comp)
+        )
+
+        return mid
+
+    elif ans=="n":
+
+        projected=50+(
+            (prelim/3)
+            +
+            ((2/3)*(cs_grade*.5))
+        )
+
+        need=(
+            75-(50+(prelim/3))
+        )/((2/3)*0.5)
+
+        print("\n--- MIDTERM STATUS ---")
+        print(
+         f"Current CS: {cs_grade:.2f}"
+        )
+        print(
+         f"Projected Midterm: {projected:.2f}"
+        )
+
+        if need<=100:
+            print(
+             f"Needed exam score to pass: {need:.2f}"
+            )
+        else:
+            print(
+             "Passing is mathematically impossible."
+            )
+
+        return None
 
 
-def final_grade(mid_g, components, percents):
-    cs_grade = CS(components, percents)
-    user = input("Do you have final exam ?(y/n): ").lower()
-    if user == "y":
-        fin_ex = exam_input()
-        fin_cs = (cs_grade * 0.5) + (fin_ex * 0.5)
-        fin_g = 50 + ((mid_g * (1/3)) + (fin_cs * (2/3)))
-    else:
-        need = (75 - (50 + (mid_g * (1/3)))) / (2/3 * 0.5)
-        print(f"You need {need:.2f} in the final exam to pass.")
-        fin_g = 50 + ((mid_g * (1/3)) + (cs_grade * 0.5 * (2/3)))
-    return fin_g
+# -----------------------------
+# Finals
+# -----------------------------
 
+def final_grade(midterm,components,weights):
+
+    cs_grade=CS(
+        components,
+        weights
+    )
+
+    ans=input(
+      "Do you have final exam? (y/n): "
+    ).lower()
+
+    if ans=="y":
+
+        exam=exam_input()
+
+        final_comp=(cs_grade*.5)+(exam*.5)
+
+        final=50+(
+            (midterm/3)
+            +
+            ((2/3)*final_comp)
+        )
+
+        return final
+
+    elif ans=="n":
+
+        projected=50+(
+            (midterm/3)
+            +
+            ((2/3)*(cs_grade*.5))
+        )
+
+        need=(
+           75-(50+(midterm/3))
+        )/((2/3)*0.5)
+
+        print("\n--- FINAL STATUS ---")
+        print(
+          f"Current CS: {cs_grade:.2f}"
+        )
+        print(
+          f"Projected Final: {projected:.2f}"
+        )
+
+        if need<=100:
+            print(
+             f"Needed exam score to pass: {need:.2f}"
+            )
+        else:
+            print(
+              "Passing is mathematically impossible."
+            )
+
+        return None
+
+
+# -----------------------------
+# Main Menu
+# -----------------------------
 
 def main():
-    components, percents = per_com()
-    pre = mid = fin = None
+
+    components,weights=per_com()
+
+    prelim=None
+    midterm=None
+    final=None
 
     while True:
-        print("\n1.Prelim\n")
-        print("2.Midterm\n")
-        print("3.Finals\n")
-        print("4.Summary\n")
-        print("5.Exit\n")
 
-        users = input("\nWhat do you want to do? (1-5): ")
+        print("\n====== MENU ======")
+        print("1 Prelim")
+        print("2 Midterm")
+        print("3 Finals")
+        print("4 Summary")
+        print("5 Exit")
 
-        if users == "1":
-            cs = CS(components, percents)
-            pre = prelim_grade(cs)
-            print(f"Prelim Grade: {pre:.2f}")
-        elif users == "2":
-            if pre is None:
-                pre = float(input("Enter your Prelim Grade: "))
-            mid = midterm_grade(pre, components, percents)
-            print(f"Midterm Grade: {mid:.2f}")
-        elif users == "3":
-            if mid is None:
-                mid = float(input("Enter your Midterm Grade: "))
-            fin = final_grade(mid, components, percents)
-            print(f"Final Grade: {fin:.2f}")
-        elif users == "4":
-            print("\nSummary\n")
-            print(f"Prelim Grade: {pre:.2f}" if pre else "Prelim not computed yet")
-            print(f"Midterm Grade: {mid:.2f}" if mid else "Midterm not computed yet")
-            print(f"Final Grade: {fin:.2f}" if fin else "Final not computed yet")
-        elif users == "5":
-            print("Exit!")
+        choice=input(
+          "Select (1-5): "
+        )
+
+        if choice=="1":
+
+            cs=CS(
+                components,
+                weights
+            )
+
+            prelim=prelim_grade(cs)
+
+            if prelim is not None:
+                print(
+                 f"Prelim Grade: {prelim:.2f}"
+                )
+
+
+        elif choice=="2":
+
+            if prelim is None:
+                prelim=float(
+                  input(
+                    "Enter Prelim Grade: "
+                  )
+                )
+
+            midterm=midterm_grade(
+                prelim,
+                components,
+                weights
+            )
+
+            if midterm is not None:
+                print(
+                 f"Midterm Grade: {midterm:.2f}"
+                )
+
+
+        elif choice=="3":
+
+            if midterm is None:
+                midterm=float(
+                   input(
+                     "Enter Midterm Grade: "
+                   )
+                )
+
+            final=final_grade(
+                midterm,
+                components,
+                weights
+            )
+
+            if final is not None:
+                print(
+                 f"Final Grade: {final:.2f}"
+                )
+
+
+        elif choice=="4":
+
+            print("\n--- SUMMARY ---")
+
+            print(
+              f"Prelim: {prelim:.2f}"
+              if prelim is not None
+              else "Prelim pending"
+            )
+
+            print(
+              f"Midterm: {midterm:.2f}"
+              if midterm is not None
+              else "Midterm pending"
+            )
+
+            print(
+              f"Final: {final:.2f}"
+              if final is not None
+              else "Final pending"
+            )
+
+
+        elif choice=="5":
+            print("Exiting...")
             break
+
         else:
-            print("Invalid choice. Try again.\n")
+            print("Invalid choice.")
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
+
