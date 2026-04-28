@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 st.set_page_config(page_title="Grade Calculator", layout="centered")
 st.title("Student Grade Calculator")
@@ -50,52 +51,37 @@ if sum(weights) != 100:
 
 
 # -----------------------------
-# CS FUNCTION (FIXED)
+# CS FUNCTION
 # -----------------------------
-def compute_cs(term_key):
+def compute_cs_table(term_key, components, weights):
     total_grade = 0
 
-    for i, comp in enumerate(selected_components):
-
+    for i, comp in enumerate(components):
         st.subheader(comp)
 
-        num_key = f"{term_key}_{comp}_num"
-        if num_key not in st.session_state:
-            st.session_state[num_key] = 1
+        # Initialize table
+        if f"{term_key}_{comp}" not in st.session_state:
+            st.session_state[f"{term_key}_{comp}"] = pd.DataFrame({
+                "Score": [0.0],
+                "Total": [0.0]
+            })
 
-        num = st.number_input(
-            f"How many {comp} items?",
-            min_value=1,
-            step=1,
-            key=num_key
+        df = st.data_editor(
+            st.session_state[f"{term_key}_{comp}"],
+            num_rows="dynamic",
+            key=f"{term_key}_{comp}_editor"
         )
 
-        scores = []
-        totals = []
+        # Save back to session
+        st.session_state[f"{term_key}_{comp}"] = df
 
-        for j in range(num):
-            raw_key = f"{term_key}_{comp}_raw_{j}"
-            total_key = f"{term_key}_{comp}_total_{j}"
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                raw = st.number_input(f"{comp} {j+1} score", key=raw_key)
-
-            with col2:
-                total = st.number_input(f"{comp} {j+1} total", key=total_key)
-
-            if total > 0:
-                scores.append(raw)
-                totals.append(total)
-
-        if totals:
-            comp_grade = (sum(scores) / sum(totals)) * weights[i]
+        # Compute
+        if len(df) > 0 and df["Total"].sum() > 0:
+            comp_grade = (df["Score"].sum() / df["Total"].sum()) * weights[i]
             total_grade += comp_grade
 
     return total_grade
-
-
+            
 # -----------------------------
 # EXAM INPUT
 # -----------------------------
